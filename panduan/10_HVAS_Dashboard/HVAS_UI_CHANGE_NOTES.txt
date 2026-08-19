@@ -1,0 +1,28 @@
+HVAS LCD UI changes
+
+1. HOME
+- FLOW RATE card: light-blue background/border to indicate user-configurable setting.
+- STATUS card: light-blue background/border to indicate user-configurable sampling timer/status setting.
+- TOTAL VOLUME remains the normal white card (read-only).
+- Flow bar still uses range 0..2000 internally, but the visible endpoint labels "0" and "2000" are removed.
+- Flow card click-to-set behavior is unchanged.
+- Status card click-to-set sampling timer behavior is unchanged.
+
+2. SYSTEM
+- Removed Display Brightness row.
+- Removed SD Card row.
+- Removed WiFi row.
+- Removed their popup/event/refresh code from this screen.
+- Kept Date & Time, Device ID, Firmware, About, Reboot, Shutdown.
+- Date & Time manual LCD editing remains via the existing set_rtc command.
+
+3. BLE / Android Date & Time
+The existing RTC protocol supports:
+{"cmd":"set_rtc","datetime":"YYYY-MM-DD HH:MM:SS"}
+Example:
+{"cmd":"set_rtc","datetime":"2026-08-13 09:45:00"}
+Expected ATmega response:
+{"status":"ok","connected":true,"updated_datetime":"2026-08-13 09:45:00",...}
+
+Android should send this command to the BLE Command characteristic and update its displayed date/time after an OK response/telemetry update.
+No separate BLE UUID is needed; use the existing Command characteristic.

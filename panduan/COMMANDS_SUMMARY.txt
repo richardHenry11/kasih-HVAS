@@ -1,0 +1,185 @@
+================================================================================
+ARDUINO MEGA 2560 PERIPHERAL CO-PROCESSOR - UART JSON+CRC16 CHEAT SHEET & SUMMARY
+================================================================================
+
+Physical Link : ESP32 UART <-> Arduino Mega UART0 (Pin 0 RX0, Pin 1 TX0 / USB)
+Baud Rate     : 115200 bps (8 Data bits, No Parity, 1 Stop bit)
+Delimiter     : Newline (\n)
+Framing       : Single-line JSON + Modbus CRC16 (4 Hex characters, polynomial 0xA001)
+
+--------------------------------------------------------------------------------
+1. HARDWARE PIN MAPPING SUMMARY
+--------------------------------------------------------------------------------
+UART0 (115200) : Link ESP32 Main CPU (Pin 0 RX0, Pin 1 TX0)
+UART1 (9600)   : Thermal Printer ESC/POS (Pin 19 RX1, Pin 18 TX1)
+UART2 (9600)   : GPS NEO-M7 (Pin 17 RX2, Pin 16 TX2)
+UART3 (9600)   : PZEM-004T v3.0 AC Meter (Pin 15 RX3, Pin 14 TX3)
+I2C Bus        : RTC DS3231 (0x68), BME280 (0x76/0x77), AT24C64/AT32C64 (Auto 0x50-0x57)
+OneWire        : DS18B20 Temp Probe (Pin A0 / Digital 54)
+Interrupt 0    : AC Dimmer Zero-Cross Sync (Pin D2)
+Timer1 PWM     : AC Dimmer TRIAC Gate Trigger (Pin D3)
+Active Buzzer  : Non-blocking Beep Engine (Pin D22)
+Voltage Sensor : DC Voltage Reader 0-25V (Pin A3 / Digital 57)
+
+--------------------------------------------------------------------------------
+2. COMPLETE CHEAT SHEET: LIST OF ALL 29 AVAILABLE COMMANDS
+--------------------------------------------------------------------------------
+
+[COMMAND]             [DESCRIPTION & PARAMETERS]
+--------------------------------------------------------------------------------
+1. ping               : Health check (Returns "pong" & mcu_uptime_ms)
+2. get_system         : Full report of device uptime, boot count, run time, & module status
+3. get_module_config  : Read module enable/disable config, boot count, & run time from EEPROM
+4. set_module_config  : Enable/disable modules & save to EEPROM (Single / Batch Update)
+5. get_rtc            : Read DS3231 RTC date, time, and temperature
+6. set_rtc            : Set RTC date & time (via ISO string, timestamp, or fields)
+7. get_bme            : Read BME280 temperature, humidity, and pressure (hPa)
+8. get_gps            : Read GPS NEO-M7 connection, satellite fix, lat/lng, speed, UTC
+9. get_ds18b20        : Read DS18B20 probe temperature & 64-bit ROM ID Hex
+10. get_pzem          : Read PZEM-004T AC voltage, current, power, kWh, freq, PF
+11. reset_pzem_energy : Reset PZEM-004T accumulated energy (kWh) to 0
+12. get_printer       : Read Thermal Printer connection & paper status
+13. print_text        : Print formatted text (text, align, bold, underline, size)
+14. print_feed        : Feed paper N lines (lines)
+15. print_raw         : Send raw ESC/POS Hex bytes to printer (hex)
+16. get_dimmer        : Read AC Dimmer power percentage & Zero-Cross connection
+17. set_dimmer        : Set AC Dimmer power percentage (percent: 0-100)
+18. get_voltage       : Read DC voltage sensor on Pin A3 (adc_raw & voltage 0-25V)
+19. set_buzzer        : Turn Active Buzzer ON (true) or OFF (false) on Pin D22
+20. beep              : Trigger non-blocking beep pattern (count, on_ms, off_ms)
+21. read_gpio         : Read pin digital logic, analog ADC, and voltage (e.g. 13 or "A3")
+22. digital_read      : Alias for read_gpio
+23. analog_read       : Read ADC & voltage specifically for analog pins
+24. write_gpio        : Write pin digital logic HIGH/LOW (pin, val: 1/0, optional mode)
+25. digital_write     : Alias for write_gpio
+26. pwm_write         : Write PWM duty cycle (0-255) to PWM pin (pin, duty: 0-255)
+27. set_pin_mode      : Set pin mode (pin, mode: "input", "output", "input_pullup")
+28. start_stream      : Enable periodic automatic telemetry push (interval ms)
+29. stop_stream       : Disable periodic telemetry push
+
+--------------------------------------------------------------------------------
+3. JSON REQUEST & RESPONSE EXAMPLES FOR ALL COMMANDS
+--------------------------------------------------------------------------------
+
+--- SYSTEM DIAGNOSTICS & MODULE CONFIG ---
+Request  : {"cmd":"ping"}
+Response : {"status":"ok","msg":"pong","mcu_uptime_ms":15420,"seq":1,"crc":"E4A1"}
+
+Request  : {"cmd":"get_system"}
+Response : {"status":"ok","device":"Arduino Mega Co-Processor","version":"v0.0.0","uptime_ms":15420,"power_on_count":42,"total_run_time_sec":483900,"total_run_time_fmt":"5d 14h 25m 00s","eeprom_type":"AT24C64_I2C (0x50)","modules":{"rtc":{"enabled":true,"connected":true},"bme":{"enabled":true,"connected":true},"gps":{"enabled":false,"connected":false,"fix":false},"ds18b20":{"enabled":true,"connected":true,"id":"28FF641E83160341"},"pzem":{"enabled":true,"connected":true},"printer":{"enabled":true,"connected":true},"dimmer":{"enabled":true,"connected":true,"percent":75},"voltage":{"enabled":true,"connected":true}},"seq":2,"crc":"9B3C"}
+
+Request  : {"cmd":"get_module_config"}
+Response : {"status":"ok","eeprom_type":"AT24C64_I2C (0x50)","power_on_count":42,"total_run_time_sec":483900,"total_run_time_fmt":"5d 14h 25m 00s","config":{"rtc":true,"bme":true,"gps":false,"ds18b20":true,"pzem":true,"printer":true,"dimmer":true,"voltage":true},"seq":3,"crc":"1A2B"}
+
+Request A: {"cmd":"set_module_config","module":"gps","enabled":false}  (Single Module Update)
+Request B: {"cmd":"set_module_config","config":{"gps":false,"pzem":false}} (Batch Update)
+Response : {"status":"ok","msg":"config_saved_eeprom","config":{"rtc":true,"bme":true,"gps":false,"ds18b20":true,"pzem":false,"printer":true,"dimmer":true,"voltage":true},"seq":4,"crc":"8C19"}
+
+--- REAL-TIME CLOCK (DS3231 I2C 0x68) ---
+Request  : {"cmd":"get_rtc"}
+Response : {"status":"ok","connected":true,"datetime":"2026-07-30 09:00:00","temp_rtc":27.5,"seq":5,"crc":"A1F8"}
+
+Request A: {"cmd":"set_rtc","datetime":"2026-07-30 09:45:00"}
+Request B: {"cmd":"set_rtc","timestamp":1785318300}
+Request C: {"cmd":"set_rtc","year":2026,"month":7,"day":30,"hour":9,"min":45,"sec":0}
+Response : {"status":"ok","connected":true,"updated_datetime":"2026-07-30 09:45:00","seq":6,"crc":"3B1C"}
+
+--- ENVIRONMENTAL SENSOR (BME280 I2C 0x76/0x77) ---
+Request  : {"cmd":"get_bme"}
+Response : {"status":"ok","connected":true,"temp":28.45,"hum":62.30,"press":1011.85,"seq":7,"crc":"3F1A"}
+
+--- LOCATION & GPS (NEO-M7 UART2 9600) ---
+Request  : {"cmd":"get_gps"}
+Response : {"status":"ok","connected":true,"fix":true,"lat":-6.200000,"lng":106.816666,"alt":18.5,"sat":8,"speed_kmh":0.0,"hdop":1.1,"utc":"2026-07-30 09:00:00","seq":8,"crc":"7E4B"}
+
+--- ONEWIRE TEMPERATURE PROBE (DS18B20 Pin A0) ---
+Request  : {"cmd":"get_ds18b20"}
+Response : {"status":"ok","connected":true,"temp":25.62,"id":"28FF641E83160341","seq":9,"crc":"4A1F"}
+
+--- AC POWER METER (PZEM-004T v3.0 UART3 9600) ---
+Request  : {"cmd":"get_pzem"}
+Response : {"status":"ok","connected":true,"voltage":220.5,"current":1.25,"power":275.6,"energy":15.42,"frequency":50.0,"pf":0.98,"seq":10,"crc":"5B8F"}
+
+Request  : {"cmd":"reset_pzem_energy"}
+Response : {"status":"ok","msg":"pzem_energy_reset","seq":11,"crc":"32A1"}
+
+--- THERMAL PRINTER (ESC/POS UART1 9600) ---
+Request  : {"cmd":"get_printer"}
+Response : {"status":"ok","connected":true,"out_of_paper":false,"error":false,"seq":12,"crc":"89AB"}
+
+Request  : {"cmd":"print_text","text":"=== HVAS 2026 ===\n","align":"center","bold":true,"size":1}
+Response : {"status":"ok","msg":"printed","seq":13,"crc":"4B2A"}
+
+Request  : {"cmd":"print_feed","lines":3}
+Response : {"status":"ok","fed_lines":3,"seq":14,"crc":"19C4"}
+
+Request  : {"cmd":"print_raw","hex":"1B401B610148656C6C6F0A"}
+Response : {"status":"ok","msg":"raw_printed","seq":15,"crc":"55E1"}
+
+--- AC PHASE CONTROL DIMMER (Pin D2 SYNC / Pin D3 GATE) ---
+Request  : {"cmd":"set_dimmer","percent":75}
+Response : {"status":"ok","connected":true,"percent":75,"enabled":true,"seq":16,"crc":"E9A1"}
+
+Request  : {"cmd":"get_dimmer"}
+Response : {"status":"ok","connected":true,"percent":75,"enabled":true,"seq":17,"crc":"12F5"}
+
+--- POWER & VOLTAGE ---
+Request  : {"cmd":"get_voltage"}
+Response : {"status":"ok","connected":true,"adc_raw":512,"voltage":12.50,"seq":18,"crc":"12F9"}
+
+--- BUZZER & REMOTE GPIO / PWM ---
+Request  : {"cmd":"set_buzzer","state":true}
+Response : {"status":"ok","buzzer":1,"seq":19,"crc":"4D2E"}
+
+Request  : {"cmd":"beep","count":3,"on_ms":100,"off_ms":100}
+Response : {"status":"ok","msg":"beep_triggered","count":3,"on_ms":100,"off_ms":100,"seq":20,"crc":"A98F"}
+
+Request  : {"cmd":"read_gpio","pin":13}
+Response : {"status":"ok","pin":13,"digital":1,"seq":21,"crc":"FF12"}
+
+Request  : {"cmd":"read_gpio","pin":"A3"}
+Response : {"status":"ok","pin":57,"digital":1,"analog":512,"voltage":2.50,"seq":22,"crc":"AA12"}
+
+Request  : {"cmd":"analog_read","pin":"A3"}
+Response : {"status":"ok","pin":57,"analog":512,"voltage":2.50,"seq":23,"crc":"BB78"}
+
+Request  : {"cmd":"write_gpio","pin":13,"val":1,"mode":"output"}
+Response : {"status":"ok","pin":13,"val":1,"seq":24,"crc":"BB34"}
+
+Request  : {"cmd":"pwm_write","pin":5,"duty":128}
+Response : {"status":"ok","pin":5,"duty":128,"seq":25,"crc":"CC55"}
+
+Request  : {"cmd":"set_pin_mode","pin":7,"mode":"input_pullup"}
+Response : {"status":"ok","pin":7,"mode":"input_pullup","seq":26,"crc":"DD66"}
+
+--- TELEMETRY STREAMING (PUSH MODE) ---
+Request  : {"cmd":"start_stream","interval":1000}
+Response : {"status":"ok","msg":"stream_started","interval":1000,"seq":27,"crc":"21A4"}
+
+Request  : {"cmd":"stop_stream"}
+Response : {"status":"ok","msg":"stream_stopped","seq":28,"crc":"123A"}
+
+--------------------------------------------------------------------------------
+4. COMPLETE ERROR CODE CHEAT SHEET
+--------------------------------------------------------------------------------
+INVALID_JSON                  : Payload bukan JSON valid.
+CRC_MISMATCH                  : CRC16 Modbus (0xA001) yang dikirim ESP32 tidak cocok.
+MISSING_CMD                   : Objek JSON tidak memiliki field wajib "cmd".
+UNKNOWN_CMD                   : Perintah tidak dikenali oleh Arduino Mega.
+BUFFER_OVERFLOW               : String JSON melebih 256 byte.
+MODULE_DISABLED               : Perintah ditolak karena modul sedang DISABLED via EEPROM config.
+MISSING_MODULE_CONFIG_PARAMS  : Field module/enabled/config tidak ada pada set_module_config.
+MISSING_DATETIME_PARAMS       : Field datetime/timestamp tidak ada pada set_rtc.
+MISSING_STATE_PARAM           : Field state tidak ada pada set_buzzer.
+MISSING_PIN_PARAM             : Parameter pin tidak ada pada read_gpio / analog_read.
+MISSING_PARAMS                : Parameter pin/val/duty/mode hilang pada write_gpio / pwm_write.
+MISSING_TEXT_PARAM            : Text printer kosong pada print_text.
+MISSING_HEX_PARAM             : Hex printer mentah kosong pada print_raw.
+MISSING_PERCENT_PARAM         : Field percent tidak ada pada set_dimmer.
+RTC_NOT_FOUND                 : Chip RTC DS3231 (0x68) terlepas dari I2C bus.
+BME280_NOT_FOUND              : Sensor BME280 (0x76/0x77) terlepas dari I2C bus.
+DS18B20_NOT_FOUND             : Probe DS18B20 terlepas dari Pin A0.
+PZEM_NOT_FOUND                : Modul PZEM-004T di Serial3 tidak merespon Modbus RTU.
+SET_RTC_FAILED                : Gagal menulis waktu baru ke DS3231.
+
+================================================================================
