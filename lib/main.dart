@@ -493,21 +493,39 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      side: BorderSide(
-                        color: Color.fromARGB(255, 83, 159, 221),
-                        width: 2,
-                      ),
-                      minimumSize: Size(180, 50)),
-                  onPressed: () async {
-                    BluetoothAdapterState bluetoothState = await FlutterBluePlus.adapterState.first;
-                    if (bluetoothState == BluetoothAdapterState.off) {
-                      await FlutterBluePlus.turnOn();
-                    }
-                    startDiscovery();
-                  },
-                  child: Text("Re-Scan")),
+              child: Column(
+                children: [
+                  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          side: BorderSide(
+                            color: Color.fromARGB(255, 83, 159, 221),
+                            width: 2,
+                          ),
+                          minimumSize: Size(180, 50)),
+                      onPressed: () async {
+                        BluetoothAdapterState bluetoothState = await FlutterBluePlus.adapterState.first;
+                        if (bluetoothState == BluetoothAdapterState.off) {
+                          await FlutterBluePlus.turnOn();
+                        }
+                        startDiscovery();
+                      },
+                      child: Text("Re-Scan")),
+                  SizedBox(height: 10),
+                  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          minimumSize: Size(180, 50)),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DashboardApp(),
+                          ),
+                        );
+                      },
+                      child: Text("Free Access", style: TextStyle(color: Colors.white))),
+                ],
+              ),
             )
           ],
         ),
