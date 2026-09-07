@@ -32,5 +32,5 @@ We may update our Privacy Policy from time to time. We will notify you of any ch
 ## Contact Us
 If you have any questions about this Privacy Policy, please contact us:
 - **Company:** PT. Cakrawala Bima Instrument
-- **Email:** [Masukkan Email Support/Perusahaan Anda]
-- **Website:** [Masukkan Website Perusahaan Anda]
+- **Email:** richard@cbinstrument.com
+- **Website:** https://cbinstrument.com/
